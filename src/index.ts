@@ -33,6 +33,10 @@ const kitchenSensorName = 'kitchen_sensor'
 const kitchenLightName = 'kitchen_switch'
 const officeSensorName = 'office_sensor'
 
+let kitchenOccupied = false
+let kitchenLightsTimer: NodeJS.Timeout | null = null
+const LIGHT_DURATION_MS = 10 * 60 * 1000
+
 const client: MqttClient = mqtt.connect(brokerUrl)
 
 client.on('connect', () => {
@@ -53,14 +57,30 @@ client.on('message', async (topic: string, message: Buffer) => {
   if (topic === `zigbee2mqtt/${kitchenSensorName}`) {
     try {
       const payload = JSON.parse(msg)
+
+      // Update occupancy state
+      kitchenOccupied = payload.occupancy
+
       if (payload.occupancy) {
         console.log('Motion detected! Turning on kitchen lights.')
-        //if ((await getMyHomeUvData()) < 0.6) {
+
+        // Clear any existing timer since there's activity
+        if (kitchenLightsTimer) {
+          clearTimeout(kitchenLightsTimer)
+          kitchenLightsTimer = null
+        }
+
+        // Turn on lights
         turnOnKitchenLights('ON')
-        //}
+
+        // Set timer to check and potentially turn off lights after 10 minutes
+        kitchenLightsTimer = setTimeout(
+          checkAndTurnOffKitchenLights,
+          LIGHT_DURATION_MS
+        )
       } else {
         console.log('No motion detected.')
-        turnOnKitchenLights('OFF')
+        // Don't turn off immediately - let the timer handle it
       }
     } catch (err) {
       console.error('Failed to parse motion sensor message:', err)
@@ -82,6 +102,26 @@ client.on('message', async (topic: string, message: Buffer) => {
     // }
   }
 })
+
+// Helper function to check occupancy and turn off lights if unoccupied
+const checkAndTurnOffKitchenLights = () => {
+  if (!kitchenOccupied) {
+    console.log(
+      'Checking occupancy - no one present. Turning off kitchen lights.'
+    )
+    turnOnKitchenLights('OFF')
+    kitchenLightsTimer = null
+  } else {
+    console.log(
+      'Checking occupancy - room still occupied. Keeping lights on and checking again in 10 minutes.'
+    )
+    // Room is still occupied, check again in 10 minutes
+    kitchenLightsTimer = setTimeout(
+      checkAndTurnOffKitchenLights,
+      LIGHT_DURATION_MS
+    )
+  }
+}
 
 // Function to turn on kitchen lights
 const turnOnKitchenLights = (state: 'ON' | 'OFF') => {

@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@types/mqtt": "^2.5.0",
-    "@types/node": "^22.10.5",
+    "@types/node": "^24.9.2",
     "axios": "^1.7.9",
     "mqtt": "^5.10.3",
     "ts-node": "^10.9.2",
