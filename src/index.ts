@@ -71,7 +71,7 @@ client.on('message', async (topic: string, message: Buffer) => {
         }
 
         // Turn on lights
-        turnOnKitchenLights('ON')
+        // turnOnKitchenLights('ON')
 
         // Set timer to check and potentially turn off lights after 10 minutes
         kitchenLightsTimer = setTimeout(
