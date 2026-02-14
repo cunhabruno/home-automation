@@ -13,11 +13,22 @@ const KITCHEN_LIGHT_TOPIC = 'zigbee2mqtt/kitchen_switch/set'
 let kitchenOccupied = false
 let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
+let bedroomLightState = false
 const LIGHT_DURATION_MS = 10 * 60 * 1000
 
-client.on('connect', () => {
+client.on('connect', async () => {
   console.log('Connected to MQTT broker')
   const topics = [KITCHEN_SENSOR_TOPIC, BUTTON_1]
+
+  // Initialize bedroom light state
+  try {
+    bedroomLightState = await hueLib.getLightStatus(BEDROOM_LIGHT)
+    console.log(
+      `Bedroom light initial state: ${bedroomLightState ? 'ON' : 'OFF'}`,
+    )
+  } catch (err) {
+    console.error('Failed to get initial bedroom light state:', err)
+  }
 
   client.subscribe(topics, (err) => {
     if (err) {
@@ -70,9 +81,19 @@ const handleButtonPress = async (msg: string) => {
     console.log(`Button action: ${buttonState.action}`)
 
     if (buttonState.action === 'single') {
-      const status = await hueLib.getLightStatus(BEDROOM_LIGHT)
-      console.log(`Toggling bedroom light (current: ${status ? 'ON' : 'OFF'})`)
-      await hueLib.turnLightOnOff(BEDROOM_LIGHT, !status)
+      const newState = !bedroomLightState
+      console.log(
+        `Attempting to turn bedroom light ${newState ? 'ON' : 'OFF'} (current state: ${bedroomLightState ? 'ON' : 'OFF'})`,
+      )
+      try {
+        await hueLib.turnLightOnOff(BEDROOM_LIGHT, newState)
+        bedroomLightState = newState
+        console.log(
+          `✓ Bedroom light successfully turned ${newState ? 'ON' : 'OFF'}`,
+        )
+      } catch (err) {
+        console.error('Failed to control bedroom light:', err)
+      }
     } else if (buttonState.action === 'double') {
       const newState = kitchenLightState === 'OFF' ? 'ON' : 'OFF'
       console.log(`Double press - toggling kitchen lights to ${newState}`)

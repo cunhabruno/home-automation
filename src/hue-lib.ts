@@ -26,6 +26,10 @@ export class HueLib {
         on,
       },
     }
-    await this.hueApi.put(`/clip/v2/resource/light/${lightId}`, payload)
+    const response = await this.hueApi.put(
+      `/clip/v2/resource/light/${lightId}`,
+      payload,
+    )
+    console.log(JSON.stringify(response.data, null, 2))
   }
 }
