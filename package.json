@@ -8,9 +8,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "test": " dotenvx run -- ts-node src/index.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.52.0",
     "@types/mqtt": "^2.5.0",
     "@types/node": "^24.9.2",
     "axios": "^1.7.9",
