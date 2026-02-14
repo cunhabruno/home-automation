@@ -14,7 +14,10 @@ let kitchenOccupied = false
 let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
 let bedroomLightState = false
+let isProcessingButtonPress = false
+let lastButtonPressTime = 0
 const LIGHT_DURATION_MS = 10 * 60 * 1000
+const BUTTON_DEBOUNCE_MS = 2000
 
 client.on('connect', async () => {
   console.log('Connected to MQTT broker')
@@ -76,6 +79,22 @@ const handleKitchenMotion = async (msg: string) => {
 }
 
 const handleButtonPress = async (msg: string) => {
+  // Debounce: ignore if a press is already being processed
+  if (isProcessingButtonPress) {
+    console.log('⏭️  Ignoring button press - previous press still processing')
+    return
+  }
+
+  // Debounce: ignore if pressed too recently
+  const now = Date.now()
+  if (now - lastButtonPressTime < BUTTON_DEBOUNCE_MS) {
+    console.log('⏭️  Ignoring button press - too soon after last press')
+    return
+  }
+
+  isProcessingButtonPress = true
+  lastButtonPressTime = now
+
   try {
     const buttonState: TuyaButtonState = JSON.parse(msg)
     console.log(`Button action: ${buttonState.action}`)
@@ -107,6 +126,8 @@ const handleButtonPress = async (msg: string) => {
     }
   } catch (err) {
     console.error('Failed to handle button press:', err)
+  } finally {
+    isProcessingButtonPress = false
   }
 }
 
