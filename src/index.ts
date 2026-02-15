@@ -13,7 +13,6 @@ const KITCHEN_LIGHT_TOPIC = 'zigbee2mqtt/kitchen_switch/set'
 let kitchenOccupied = false
 let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
-let bedroomLightState = false
 let isProcessingButtonPress = false
 let lastButtonPressTime = 0
 const LIGHT_DURATION_MS = 10 * 60 * 1000
@@ -22,16 +21,6 @@ const BUTTON_DEBOUNCE_MS = 2000
 client.on('connect', async () => {
   console.log('Connected to MQTT broker')
   const topics = [KITCHEN_SENSOR_TOPIC, BUTTON_1]
-
-  // Initialize bedroom light state
-  try {
-    bedroomLightState = await hueLib.getLightStatus(BEDROOM_LIGHT)
-    console.log(
-      `Bedroom light initial state: ${bedroomLightState ? 'ON' : 'OFF'}`,
-    )
-  } catch (err) {
-    console.error('Failed to get initial bedroom light state:', err)
-  }
 
   client.subscribe(topics, (err) => {
     if (err) {
@@ -100,16 +89,34 @@ const handleButtonPress = async (msg: string) => {
     console.log(`Button action: ${buttonState.action}`)
 
     if (buttonState.action === 'single') {
-      const newState = !bedroomLightState
-      console.log(
-        `Attempting to turn bedroom light ${newState ? 'ON' : 'OFF'} (current state: ${bedroomLightState ? 'ON' : 'OFF'})`,
-      )
       try {
-        await hueLib.turnLightOnOff(BEDROOM_LIGHT, newState)
-        bedroomLightState = newState
+        // Fetch actual current state from the light before toggling
+        console.log('🔍 Fetching current bedroom light state...')
+        const currentState = await hueLib.getLightStatus(BEDROOM_LIGHT)
+        console.log(`📊 Current state: ${currentState ? 'ON' : 'OFF'}`)
+
+        const newState = !currentState
         console.log(
-          `✓ Bedroom light successfully turned ${newState ? 'ON' : 'OFF'}`,
+          `Attempting to turn bedroom light ${newState ? 'ON' : 'OFF'}`,
         )
+
+        await hueLib.turnLightOnOff(BEDROOM_LIGHT, newState)
+
+        // Verify the light actually changed state
+        const verifiedState = await hueLib.getLightStatus(BEDROOM_LIGHT)
+        console.log(
+          `🔍 Verified state after toggle: ${verifiedState ? 'ON' : 'OFF'}`,
+        )
+
+        if (verifiedState === newState) {
+          console.log(
+            `✓ Bedroom light successfully turned ${newState ? 'ON' : 'OFF'}`,
+          )
+        } else {
+          console.error(
+            `❌ Light state verification failed! Expected ${newState ? 'ON' : 'OFF'}, but got ${verifiedState ? 'ON' : 'OFF'}`,
+          )
+        }
       } catch (err) {
         console.error('Failed to control bedroom light:', err)
       }
