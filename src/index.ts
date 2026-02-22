@@ -15,7 +15,7 @@ let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
 let isProcessingButtonPress = false
 let lastButtonPressTime = 0
-const LIGHT_DURATION_MS = 10 * 60 * 1000
+const LIGHT_DURATION_MS = 5 * 60 * 1000
 const BUTTON_DEBOUNCE_MS = 2000
 
 client.on('connect', async () => {
@@ -44,6 +44,9 @@ client.on('message', async (topic: string, message: Buffer) => {
 const handleKitchenMotion = async (msg: string) => {
   try {
     const payload = JSON.parse(msg)
+
+    if (typeof payload.occupancy !== 'boolean') return
+
     kitchenOccupied = payload.occupancy
 
     if (payload.occupancy) {
@@ -60,7 +63,15 @@ const handleKitchenMotion = async (msg: string) => {
         LIGHT_DURATION_MS,
       )
     } else {
-      console.log('Kitchen motion cleared')
+      console.log('Kitchen motion cleared - scheduling turn off')
+
+      if (kitchenLightsTimer) {
+        clearTimeout(kitchenLightsTimer)
+      }
+      kitchenLightsTimer = setTimeout(
+        checkAndTurnOffKitchenLights,
+        LIGHT_DURATION_MS,
+      )
     }
   } catch (err) {
     console.error('Failed to parse kitchen motion sensor message:', err)
@@ -120,7 +131,10 @@ const handleButtonPress = async (msg: string) => {
       } catch (err) {
         console.error('Failed to control bedroom light:', err)
       }
-    } else if (buttonState.action === 'double') {
+    } else if (
+      buttonState.action === 'double' ||
+      buttonState.action === 'hold'
+    ) {
       const newState = kitchenLightState === 'OFF' ? 'ON' : 'OFF'
       console.log(`Double press - toggling kitchen lights to ${newState}`)
       turnOnKitchenLights(newState)
@@ -128,8 +142,6 @@ const handleButtonPress = async (msg: string) => {
         clearTimeout(kitchenLightsTimer)
         kitchenLightsTimer = null
       }
-    } else if (buttonState.action === 'hold') {
-      console.log('Hold detected (no action configured)')
     }
   } catch (err) {
     console.error('Failed to handle button press:', err)
