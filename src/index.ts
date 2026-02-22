@@ -9,18 +9,20 @@ const { mqttClient: client, hueLib } = setupServices(config)
 
 const KITCHEN_SENSOR_TOPIC = 'zigbee2mqtt/kitchen_sensor'
 const KITCHEN_LIGHT_TOPIC = 'zigbee2mqtt/kitchen_switch/set'
+const KITCHEN_LIGHT_STATE_TOPIC = 'zigbee2mqtt/kitchen_switch'
+const KITCHEN_LIGHT_GET_TOPIC = 'zigbee2mqtt/kitchen_switch/get'
 
 let kitchenOccupied = false
 let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
 let isProcessingButtonPress = false
 let lastButtonPressTime = 0
-const LIGHT_DURATION_MS = 5 * 60 * 1000
+const LIGHT_DURATION_MS = 2 * 60 * 1000
 const BUTTON_DEBOUNCE_MS = 2000
 
 client.on('connect', async () => {
   console.log('Connected to MQTT broker')
-  const topics = [KITCHEN_SENSOR_TOPIC, BUTTON_1]
+  const topics = [KITCHEN_SENSOR_TOPIC, KITCHEN_LIGHT_STATE_TOPIC, BUTTON_1]
 
   client.subscribe(topics, (err) => {
     if (err) {
@@ -36,6 +38,8 @@ client.on('message', async (topic: string, message: Buffer) => {
 
   if (topic === KITCHEN_SENSOR_TOPIC) {
     await handleKitchenMotion(msg)
+  } else if (topic === KITCHEN_LIGHT_STATE_TOPIC) {
+    handleKitchenLightState(msg)
   } else if (topic === BUTTON_1) {
     await handleButtonPress(msg)
   }
@@ -44,6 +48,7 @@ client.on('message', async (topic: string, message: Buffer) => {
 const handleKitchenMotion = async (msg: string) => {
   try {
     const payload = JSON.parse(msg)
+    console.log(payload)
 
     if (typeof payload.occupancy !== 'boolean') return
 
@@ -150,6 +155,32 @@ const handleButtonPress = async (msg: string) => {
   }
 }
 
+const handleKitchenLightState = (msg: string) => {
+  try {
+    const payload = JSON.parse(msg)
+    if (payload.state === 'ON' || payload.state === 'OFF') {
+      kitchenLightState = payload.state
+      console.log(`🔄 Kitchen light actual state: ${kitchenLightState}`)
+    }
+  } catch (err) {
+    console.error('Failed to parse kitchen light state:', err)
+  }
+}
+
+const getKitchenLightState = () => {
+  client.publish(
+    KITCHEN_LIGHT_GET_TOPIC,
+    JSON.stringify({ state: '' }),
+    (err) => {
+      if (err) {
+        console.error('Failed to request kitchen light state:', err)
+      } else {
+        console.log('🔍 Requested kitchen light current state')
+      }
+    },
+  )
+}
+
 const checkAndTurnOffKitchenLights = () => {
   if (!kitchenOccupied) {
     console.log('Kitchen unoccupied - turning off lights')
@@ -157,6 +188,7 @@ const checkAndTurnOffKitchenLights = () => {
     kitchenLightsTimer = null
   } else {
     console.log('Kitchen still occupied - extending timer')
+    getKitchenLightState()
     kitchenLightsTimer = setTimeout(
       checkAndTurnOffKitchenLights,
       LIGHT_DURATION_MS,
