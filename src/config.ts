@@ -14,7 +14,7 @@ export const loadConfig = (): Config => {
     brokerUrl:
       process.env.MQTT_BROKER_URL ||
       'mqtt://mosquitto.mqtt.svc.cluster.local:1883',
-    hueUrl: process.env.HUE_URL || 'https://192.168.1.111',
+    hueUrl: process.env.HUE_URL || 'https://192.168.1.113',
     hueUser: process.env.HUE_USER,
   }
 }

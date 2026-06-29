@@ -7,7 +7,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 const config = loadConfig()
 const { mqttClient: client, hueLib } = setupServices(config)
 
-const KITCHEN_SENSOR_TOPIC = 'zigbee2mqtt/kitchen_sensor'
+const KITCHEN_SENSOR_TOPIC = 'zigbee2mqtt/kitchen_montion_sensor'
 const KITCHEN_LIGHT_TOPIC = 'zigbee2mqtt/kitchen_switch/set'
 const KITCHEN_LIGHT_STATE_TOPIC = 'zigbee2mqtt/kitchen_switch'
 const KITCHEN_LIGHT_GET_TOPIC = 'zigbee2mqtt/kitchen_switch/get'
@@ -17,7 +17,7 @@ let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
 let isProcessingButtonPress = false
 let lastButtonPressTime = 0
-const LIGHT_DURATION_MS = 2 * 60 * 1000
+const LIGHT_DURATION_MS = 2000 //* 60 * 1000
 const BUTTON_DEBOUNCE_MS = 2000
 
 client.on('connect', async () => {
