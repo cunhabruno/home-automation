@@ -17,7 +17,7 @@ let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
 let isProcessingButtonPress = false
 let lastButtonPressTime = 0
-const LIGHT_DURATION_MS = 2000 //* 60 * 1000
+const LIGHT_DURATION_MS = 2000 * 60 * 1000
 const BUTTON_DEBOUNCE_MS = 2000
 
 client.on('connect', async () => {
