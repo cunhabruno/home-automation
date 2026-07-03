@@ -17,9 +17,8 @@ let kitchenLightsTimer: NodeJS.Timeout | null = null
 let kitchenLightState: 'ON' | 'OFF' = 'OFF'
 let isProcessingButtonPress = false
 let lastButtonPressTime = 0
-const LIGHT_DURATION_MS = 2000 * 60 * 1000
-const BUTTON_DEBOUNCE_MS = 2000
-
+const LIGHT_DURATION_MS = 5 * 60 * 1000 // 5 minutes
+const BUTTON_DEBOUNCE_MS = 2000 // 2 seconds
 client.on('connect', async () => {
   console.log('Connected to MQTT broker')
   const topics = [KITCHEN_SENSOR_TOPIC, KITCHEN_LIGHT_STATE_TOPIC, BUTTON_1]
