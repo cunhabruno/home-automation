@@ -50,33 +50,26 @@ const handleKitchenMotion = async (msg: string) => {
     console.log(payload)
 
     if (typeof payload.occupancy !== 'boolean') return
+    if (payload.occupancy === kitchenOccupied) return
 
     kitchenOccupied = payload.occupancy
 
+    if (kitchenLightsTimer) {
+      clearTimeout(kitchenLightsTimer)
+      kitchenLightsTimer = null
+    }
+
     if (payload.occupancy) {
       console.log('Kitchen motion detected - turning on lights')
-
-      if (kitchenLightsTimer) {
-        clearTimeout(kitchenLightsTimer)
-        kitchenLightsTimer = null
-      }
-
       turnOnKitchenLights('ON')
-      kitchenLightsTimer = setTimeout(
-        checkAndTurnOffKitchenLights,
-        LIGHT_DURATION_MS,
-      )
     } else {
       console.log('Kitchen motion cleared - scheduling turn off')
-
-      if (kitchenLightsTimer) {
-        clearTimeout(kitchenLightsTimer)
-      }
-      kitchenLightsTimer = setTimeout(
-        checkAndTurnOffKitchenLights,
-        LIGHT_DURATION_MS,
-      )
     }
+
+    kitchenLightsTimer = setTimeout(
+      checkAndTurnOffKitchenLights,
+      LIGHT_DURATION_MS,
+    )
   } catch (err) {
     console.error('Failed to parse kitchen motion sensor message:', err)
   }
